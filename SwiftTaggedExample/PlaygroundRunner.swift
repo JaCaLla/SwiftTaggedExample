@@ -17,6 +17,7 @@ final class PlaygroundRunner: ObservableObject {
         demoRaw()
         demoTagged()
         demoCodable()
+        demoHashable()
     }
 }
 
@@ -39,7 +40,7 @@ private extension PlaygroundRunner {
         let rawUser = UserRaw(id: UUID())
         let rawProduct = ProductRaw(id: UUID())
 
-        // Compiles, BUT CODE SEMANTICALLY IS WRONG (crossed arguments)
+        // ❌ Compiles, BUT CODE SEMANTICALLY IS WRONG (crossed arguments)
         registerPurchaseRaw(userID: rawProduct.id, productID: rawUser.id)
         log("")
     }
@@ -72,8 +73,7 @@ private extension PlaygroundRunner {
         registerPurchase(userID: user.id, productID: product.id)
 
         // ❌ This no longer compiles (type mismatch): // registerPurchase(userID: product.id, productID: user.id
-        // Esto ya no compila (type mismatch):
-        //registerPurchase(userID: product.id, productID: user.id)
+       // registerPurchase(userID: product.id, productID: user.id)
         log("")
     }
 
@@ -124,5 +124,47 @@ private extension PlaygroundRunner {
         }
 
         log("")
+    }
+    
+    func demoHashable() {
+        // ---------------------------------------------------------
+        // 🔢 4. Using swift-tagged with Hashable collections
+        // ---------------------------------------------------------
+
+        // Sets of tagged IDs
+        let user = User(id: UserID(UUID()))
+        var seenUsers = Set<UserID>()
+        seenUsers.insert(user.id)                 // from earlier code
+        seenUsers.insert(UserID(UUID()))          // a different user
+        seenUsers.insert(user.id)                 // duplicate; Set ignores it
+
+        log("👥 Seen users (unique count): \(seenUsers.count)")
+
+        // Dictionaries with tagged IDs as keys
+        let product = Product(id: ProductID(UUID()))
+        var productStock: [ProductID: Int] = [:]
+        productStock[product.id] = 10             // from earlier code
+        let anotherProductID = ProductID(UUID())
+        productStock[anotherProductID] = 5
+
+        log("📦 Product stock:")
+        for (pid, qty) in productStock {
+            log(" - \(pid): \(qty)")
+        }
+
+        // Using tagged IDs inside Hashable models
+        struct CartItem: Hashable {
+            let productID: ProductID
+            let quantity: Int
+        }
+
+        var cart = Set<CartItem>()
+        cart.insert(CartItem(productID: product.id, quantity: 1))
+        cart.insert(CartItem(productID: product.id, quantity: 1)) // duplicate CartItem; Set ignores it
+        cart.insert(CartItem(productID: product.id, quantity: 2)) // different (quantity), so distinct
+        cart.insert(CartItem(productID: anotherProductID, quantity: 1))
+
+        log("🛒 Cart unique items: \(cart.count)")
+
     }
 }
